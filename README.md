@@ -73,7 +73,7 @@ AI-Calendar-Scheduler/
 
 ### 1️⃣ Clone & Setup
 ```bash
-git clone https://github.com/your-username/ai-calendar-scheduler.git
+git clone https://github.com/kartik0905/ai-calendar-scheduler.git
 cd ai-calendar-scheduler
 ```
 
@@ -127,5 +127,5 @@ Example prompt:
 ---
 
 <div align="center">
-  Built with ❤️ by <a href="https://github.com/your-username">Your Name</a>
+  Built with ❤️ by <a href="https://github.com/kartik0905">Kartik Garg</a>
 </div>
