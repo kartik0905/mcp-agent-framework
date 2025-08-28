@@ -5,3 +5,4 @@ __pycache__/
 .vscode/
 client_secret.json
 credentials.json
+.DS_Store
