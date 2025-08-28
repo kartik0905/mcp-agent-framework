@@ -32,16 +32,16 @@ tools = [
     }
 ]
 
+
 def run_agent(prompt: str):
     """Takes a user prompt and executes the appropriate tool."""
     if not openai.api_key:
-        print("🛑 ERROR: OPENAI_API_KEY environment variable not set.")
+        print("ERROR: OPENAI_API_KEY environment variable not set.")
         return
         
     print(f"User > {prompt}")
     
-
-    current_time_prompt = f"The current date and time is {datetime.now().isoformat()}."
+    current_time_prompt = f"The current date and time is {datetime.now().isoformat()}. When a user asks for an event on a specific day without a time (e.g., 'tomorrow', 'next friday'), the start_time should be just the date in YYYY-MM-DD format."
     
     response = openai.chat.completions.create(
         model="gpt-4-turbo",
@@ -63,30 +63,36 @@ def run_agent(prompt: str):
     if tool_call.function.name == "create_calendar_event":
         args = json.loads(tool_call.function.arguments)
         
-        start_time_obj = datetime.fromisoformat(args['start_time'])
-        duration = args.get('duration_minutes', 60)
-        end_time_obj = start_time_obj + timedelta(minutes=duration)
+     
+        payload = {
+            "credentials": USER_CREDS,
+            "title": args['title'],
+            "start_time_iso": args['start_time']
+        }
+        
+      
+        is_all_day = 'T' not in args['start_time']
+        payload["is_all_day"] = is_all_day
+        
+
+        if not is_all_day:
+            start_time_obj = datetime.fromisoformat(args['start_time'])
+            duration = args.get('duration_minutes', 60)
+            end_time_obj = start_time_obj + timedelta(minutes=duration)
+            payload["end_time_iso"] = end_time_obj.isoformat()
+        
 
         print(f"Agent > Understood. Scheduling '{args['title']}'...")
         print("Agent > Calling MCP Server to create the event...")
-
-
-        api_response = requests.post(
-            "http://localhost:8000/create-event",
-            json={
-                "credentials": USER_CREDS,
-                "title": args['title'],
-                "start_time_iso": start_time_obj.isoformat(),
-                "end_time_iso": end_time_obj.isoformat()
-            }
-        )
+        
+        api_response = requests.post("http://localhost:8000/create-event", json=payload)
         
         if api_response.status_code == 200:
-            print(f"✅ Agent > Success! {api_response.json()}")
+            print(f"Agent > Success! {api_response.json()}")
         else:
-            print(f"🛑 Agent > Error: {api_response.text}")
+            print(f"Agent > Error: {api_response.text}")
 
 
 if __name__ == "__main__":
-    user_input = "Schedule a meeting for tomorrow at 4 PM to discuss the project launch for an hour"
+    user_input = input("🤖 Hello! What can I do for you today? > ")
     run_agent(user_input)

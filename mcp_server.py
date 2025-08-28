@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException 
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import os
@@ -16,19 +16,32 @@ flow = Flow.from_client_secrets_file(
 
 @app.post("/create-event")
 async def create_event(request: Request):
+    """Creates an event in the user's primary calendar."""
     data = await request.json()
-    creds_data = data['credentials'] 
+    creds_data = data['credentials']
     
     from google.oauth2.credentials import Credentials
     credentials = Credentials.from_authorized_user_info(creds_data)
     
     service = build('calendar', 'v3', credentials=credentials)
     
-    event = {
-        'summary': data['title'],
-        'start': {'dateTime': data['start_time_iso'], 'timeZone': 'Asia/Kolkata'},
-        'end': {'dateTime': data['end_time_iso'], 'timeZone': 'Asia/Kolkata'},
-    }
+    is_all_day = data.get('is_all_day', False)
+    
+    if is_all_day:
+        event = {
+            'summary': data['title'],
+            'start': {'date': data['start_time_iso']},
+            'end': {'date': data['start_time_iso']},
+        }
+    else:
+        if 'end_time_iso' not in data:
+            raise HTTPException(status_code=400, detail="Missing 'end_time_iso' for a timed event.")
+            
+        event = {
+            'summary': data['title'],
+            'start': {'dateTime': data['start_time_iso'], 'timeZone': 'Asia/Kolkata'},
+            'end': {'dateTime': data['end_time_iso'], 'timeZone': 'Asia/Kolkata'},
+        }
 
     created_event = service.events().insert(calendarId='primary', body=event).execute()
     return {"status": "event created", "link": created_event.get('htmlLink')}
